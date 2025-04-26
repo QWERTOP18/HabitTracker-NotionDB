@@ -1,14 +1,31 @@
-from NotionDB.HabitTracker import fetch_today_data
+from NotionDB.WordSender import fetch_word
 from Discord.webhook import send_to_discord
+import os
 
 if __name__ == "__main__":
-    user_data = fetch_today_data()
+    # 各言語用のWebhook URLを取得
+    spanish_webhook = os.getenv("DISCORD_SPANISH_WEBHOOK")
+    korean_webhook = os.getenv("DISCORD_KOREAN_WEBHOOK")
 
-    if not user_data:
-        send_to_discord("⚠️ 今日の記録は見つかりませんでした。")
+    # SpanishとKoreanのデータを取得
+    spanish_words = fetch_word("Spanish")
+    korean_words = fetch_word("Korean")
+
+    # Discordに送信
+    if not spanish_words and not korean_words:
+        if spanish_webhook:
+            send_to_discord("⚠️ データが見つかりませんでした。", spanish_webhook)
+        if korean_webhook:
+            send_to_discord("⚠️ データが見つかりませんでした。", korean_webhook)
     else:
-        for user, content in user_data.items():
-            message = f"## **{user}** さんの習慣チェック\n{content}\n\n"
-            message += "--------------------\n\n"
-            
-            send_to_discord(message)
+        # Spanishのデータを送信
+        if spanish_words and spanish_webhook:
+            for key, value in spanish_words.items():
+                message = f"- **{key}**: ||{value}||"
+                send_to_discord(message, spanish_webhook)
+
+        # Koreanのデータを送信
+        if korean_words and korean_webhook:
+            for key, value in korean_words.items():
+                message = f"- **{key}**: ||{value}||"
+                send_to_discord(message, korean_webhook)
